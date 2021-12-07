@@ -11,14 +11,15 @@
 
 (define-syntax-parse-rule (for/min for-clauses body ...+)
   (begin
+    (define no-min (gensym))
     (define res
-      (for/fold ([n 'no-min])
+      (for/fold ([n no-min])
                 for-clauses
         (let ([val (begin body ...)])
-          (if (eq? n 'no-min)
+          (if (eq? n no-min)
             val
             (min val n)))))
-    (if (eq? res 'no-min)
+    (if (eq? res no-min)
       #f
       res)))
 
