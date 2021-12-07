@@ -1,5 +1,6 @@
 #lang racket
 
+(require syntax/parse/define)
 (require (for-syntax racket/base syntax/parse))
 
 ;; Linear solution for part 1:
@@ -8,20 +9,18 @@
 ;; 3. move right, adjusting the fuel count at each step based on # of crabs at left and right to calculate new fuel usage
 ;; 4. return the minimum result
 
-(define-syntax (for/min stx)
-  (syntax-parse stx
-    [(_ for-clauses body ...+)
-     #`(begin
-         (define res
-           (for/fold ([n 'no-min])
-                     for-clauses
-             (let ([val (begin body ...)])
-               (if (eq? n 'no-min)
-                 val
-                 (min val n)))))
-         (if (eq? res 'no-min)
-           #f
-           res))]))
+(define-syntax-parse-rule (for/min for-clauses body ...+)
+  (begin
+    (define res
+      (for/fold ([n 'no-min])
+                for-clauses
+        (let ([val (begin body ...)])
+          (if (eq? n 'no-min)
+            val
+            (min val n)))))
+    (if (eq? res 'no-min)
+      #f
+      res)))
 
 (define (get-input port)
   (map string->number (string-split (read-line port) ",")))
