@@ -1,5 +1,7 @@
 #lang racket
 
+(require profile)
+
 (define (get-input port)
   (define (parse-line line)
     (for/list ([n (string-split line "")]
@@ -28,6 +30,19 @@
 
 (define (get grid row col)
   (list-ref (list-ref grid row) col))
+
+(define (set-grid grid row col val)
+  (list-update grid
+               row
+               (λ (r) (list-update r col (λ (_) val)))))
+
+(define (val-grid height width val)
+  (for/list ([_row-idx (in-range height)])
+    (for/list ([_col-idx (in-range width)])
+      val)))
+
+(define (false-grid height width)
+  (val-grid height width #f))
 
 (define (target? coord target)
   (and (= (car coord) (car target))
@@ -76,8 +91,6 @@
   (define-values (score _known)
                  (get-lowest-for-point 0 0 (set) (hash)))
 
-  (displayln _known)
-  (displayln MAX-NUM)
   score)
 
 (define (generate-full-grid grid)
@@ -138,27 +151,121 @@
          (values lowest (hash-set cache++ coord lowest)))]))
 
   (define-values (lowest _cache) (lowest-for-coord 0 0 (hash)))
-  (displayln height)
-  (displayln width)
   (- lowest (get grid 0 0)))
+
+
 
 (define (lowest-risk-dp grid)
   (define-values (height width) (get-dimensions grid))
-  ;; fill out grid with empty
-  ;; replace bottom-right with the grid value
-  ;; iterate up one step at a time until you get to like 500 probably, something in that ballpark
-  ;; return
-  ;; could iterate to a fixed point LOL
-  ;; also, have two functions: one that adds the entered cell to the value, and one that visits the cell.
-  ;;   with that recursive structure, I can call the second function as the entry point and don't have
-  ;;   to worry about subtracting (0 0) at the end.
+  (define target-row (sub1 height))
+  (define target-col (sub1 width))
+
+  (define start-dp
+    (set-grid (false-grid height width)
+              target-row
+              target-col
+              0))
+
+  (define (get-result dp row col)
+    (if (out-of-bounds? row col height width)
+      #f
+      (let ([v (get dp row col)])
+        (and v (+ v (get grid row col))))))
+
+  (define (min-dp . vals)
+    (define remaining (filter (λ (v) (not (false? v))) vals))
+    (if (empty? remaining)
+      #f
+      (apply min remaining)))
+
+  (define (inc-step old-dp)
+    (for/list ([row (in-range height)])
+      (for/list ([col (in-range width)])
+        (min-dp (get old-dp row col)
+                (get-result old-dp (add1 row) col)
+                (get-result old-dp (sub1 row) col)
+                (get-result old-dp row (add1 col))
+                (get-result old-dp row (sub1 col))))))
+
+  (define (find-lowest old-dp)
+    (let ([new-dp (inc-step old-dp)])
+      (if (equal? new-dp old-dp)
+        old-dp
+        (find-lowest new-dp))))
+
+  (define (get-answer dp)
+    (get dp 0 0))
+
+  (get-answer (find-lowest start-dp)))
+
+(define (lowest-risk-dp! grid)
+  (define-values (height width) (get-dimensions grid))
+  (define target-row (sub1 height))
+  (define target-col (sub1 width))
+
+  (define (grid-to-vec grid)
+    (for/vector ([row grid])
+      (for/vector ([val row])
+        val)))
+
+  (define grid-vec (grid-to-vec grid))
+
+  (define (val-grid-vector val)
+    (for/vector ([_row-idx (in-range height)])
+      (for/vector ([_col-idx (in-range width)])
+        val)))
+
+  (define (false-grid-vector)
+    (val-grid-vector #f))
+
+  (define (get-vec vec row col)
+    (vector-ref (vector-ref vec row) col))
+
+  (define (set-vec! vec row col val)
+    (vector-set! (vector-ref vec row)
+                 col
+                 val))
+
+  (define start-dp (false-grid-vector))
+  (set-vec! start-dp target-row target-col 0)
+
+  (define (get-result dp row col)
+    (if (out-of-bounds? row col height width)
+      #f
+      (let ([v (get-vec dp row col)])
+        (and v (+ v (get-vec grid-vec row col))))))
+
+  (define (min-dp . vals)
+    (define remaining (filter (λ (v) (not (false? v))) vals))
+    (if (empty? remaining)
+      #f
+      (apply min remaining)))
+
+  (define (inc-step! old-dp new-dp)
+    (for ([row (in-range height)])
+      (for ([col (in-range width)])
+        (define best
+          (min-dp (get-vec old-dp row col)
+                  (get-result old-dp (add1 row) col)
+                  (get-result old-dp (sub1 row) col)
+                  (get-result old-dp row (add1 col))
+                  (get-result old-dp row (sub1 col))))
+
+        (set-vec! new-dp row col best))))
+
+  (define (find-lowest old-dp new-dp n)
+    (inc-step! old-dp new-dp)
+    (if (equal? new-dp old-dp)
+      old-dp
+      (find-lowest new-dp old-dp (add1 n))))
+
+  (define (get-answer dp)
+    (get-vec dp 0 0))
+
+  (get-answer (find-lowest start-dp (false-grid-vector) 1)))
 
 
 (define grid (get-input (current-input-port)))
-(define-values (height width) (get-dimensions grid))
-(displayln height)
-(displayln width)
 (define full-grid (generate-full-grid grid))
-
-(lowest-risk full-grid)
+(lowest-risk-dp! full-grid)
 
