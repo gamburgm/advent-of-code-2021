@@ -108,39 +108,6 @@
       #t
       (explode-res left-exp right-exp)))
 
-  ;; (define (reduce-pair/depth left right d)
-  ;;   (define-values (reduced-left left-explosion left-event?)
-  ;;                  (reduce-num/depth left (inc-depth d)))
-
-  ;;   (cond
-  ;;     [(explode-res? left-explosion)
-  ;;      (values (cons reduced-left
-  ;;                    (apply-left right (explode-res-right left-explosion)))
-  ;;              (make-explode-res (explode-res-left left-explosion)
-  ;;                           0)
-  ;;              #t)]
-  ;;     [left-event?
-  ;;      (values (cons reduced-left right)
-  ;;              #f
-  ;;              #t)]
-  ;;     [else
-  ;;      (define-values (reduced-right right-explosion right-event?)
-  ;;                     (reduce-num/depth right (inc-depth d)))
-
-  ;;      (cond
-  ;;        [(explode-res? right-explosion)
-  ;;         (values (cons (apply-right reduced-left (explode-res-left right-explosion))
-  ;;                       reduced-right)
-  ;;                 (make-explode-res 0
-  ;;                                   (explode-res-right right-explosion))
-  ;;                 #t)]
-  ;;        [right-event?
-  ;;         (values (cons reduced-left reduced-right)
-  ;;                 #f
-  ;;                 #t)]
-  ;;        [else
-  ;;         (values (cons reduced-left reduced-right) #f #f)])]))
-
   (define (explode-pair/depth left right d)
     (define-values (new-left left-explosion)
                    (explode-num/depth left (inc-depth d)))
