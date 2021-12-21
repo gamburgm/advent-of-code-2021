@@ -24,10 +24,10 @@
         (- (cadr pt1) (cadr pt2))
         (- (caddr pt1) (caddr pt2))))
 
-(struct graph (points dists point-resolver) #:transparent)
+(struct graph (points dists point-resolver poses) #:transparent)
 
 (define (make-graph)
-  (graph (set) (hash) (hash)))
+  (graph (set) (hash) (hash) (set '(0 0 0))))
 
 (define (coord-dist c1 c2)
   (for/list ([cmp1 c1]
@@ -60,7 +60,7 @@
               (cons c1 dist)
               c2))
 
-  (graph new-points new-dists new-resolver))
+  (graph new-points new-dists new-resolver (graph-poses g)))
 
 (define (add-graph-edge g c1 c2)
   (let ([first-dir (add-directed-edge g c1 c2)])
@@ -100,6 +100,12 @@
       (get-to graph start-pt e)))
 
   (set-add resolved-pts start-pt))
+
+(define (add-new-graph-pos g pos)
+  (graph (graph-points g)
+         (graph-dists g)
+         (graph-point-resolver g)
+         (set-add (graph-poses g) pos)))
 
 (define (create-point-align-func pt1 pt2)
   (define (get-selector elem pt)
@@ -151,8 +157,9 @@
   (define pt-align-fn (get-alignment-from-dists))
   (define g2-pos (subtract-pts start1 (pt-align-fn start2)))
 
-  (displayln "booyah")
-  (for/fold ([graph g1])
+  (define updated-g1 (add-new-graph-pos g1 g2-pos))
+
+  (for/fold ([graph updated-g1])
             ([pt (in-graph-points g2)])
     (define aligned-pt (pt-align-fn pt))
     (graph-add-point graph (add-pts g2-pos aligned-pt))))
@@ -229,8 +236,24 @@
         (combine-until-empty new-g new-others))))
 
   (combine-until-empty (car graphs) (cdr graphs)))
+
+(define (manhattan-axis v1 v2)
+  (abs (- v1 v2)))
+
+(define (manhattan-dist pt1 pt2)
+  (+ (manhattan-axis (car pt1) (car pt2))
+     (manhattan-axis (cadr pt1) (cadr pt2))
+     (manhattan-axis (caddr pt1) (caddr pt2))))
+
+(define (max-manhattan pts)
+  (for*/fold ([res 0])
+             ([pt1 pts]
+              [pt2 pts]
+              #:when (not (equal? pt1 pt2)))
+    (max res (manhattan-dist pt1 pt2))))
              
 
 (let* ([scanners (get-input (current-input-port))]
        [graphs (map scanner->graph scanners)])
-  (graph-size (combine-graphs graphs)))
+  (define new-graph (combine-graphs graphs))
+  (max-manhattan (set->list (graph-poses new-graph))))
