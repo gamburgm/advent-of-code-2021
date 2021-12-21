@@ -14,6 +14,11 @@
 
 (define (flip n) (* -1 n))
 
+(define (add-pts pt1 pt2)
+  (list (+ (car pt1) (car pt2))
+        (+ (cadr pt1) (cadr pt2))
+        (+ (caddr pt1) (caddr pt2))))
+
 (define (subtract-pts pt1 pt2)
   (list (- (car pt1) (car pt2))
         (- (cadr pt1) (cadr pt2))
@@ -64,6 +69,9 @@
 (define (in-graph-points g)
   (in-set (graph-points g)))
 
+(define (in-pt-dists g pt)
+  (in-set (hash-ref (graph-dists g) pt)))
+
 (define (in-graph-dists g)
   (in-hash (graph-dists g)))
 
@@ -83,6 +91,9 @@
   (hash-ref (graph-point-resolver graph)
             (cons from dist)))
 
+(define (get-any-dist graph pt)
+  (set-first (hash-ref (graph-dists graph) pt)))
+
 (define (resolve-points graph start-pt edges)
   (define resolved-pts
     (for/set ([e edges])
@@ -95,7 +106,8 @@
     (cond
       [(eq? (abs elem) (abs (car pt))) car]
       [(eq? (abs elem) (abs (cadr pt))) cadr]
-      [else caddr]))
+      [(eq? (abs elem) (abs (caddr pt))) caddr]
+      [else (error "BAD")]))
 
   (define (get-orientation pt1 pt2)
     (let ([fst (get-selector (car pt1) pt2)]
@@ -108,35 +120,42 @@
 
   (define (get-direction target other)
     (if (eq? target other)
-      flip
-      identity))
+      identity
+      flip))
 
   (define (get-axes pt1 pt2)
     (let ([fst (get-direction (car pt1) (car pt2))]
           [snd (get-direction (cadr pt1) (cadr pt2))]
           [thd (get-direction (caddr pt1) (caddr pt2))])
     (λ (pt)
-       (list (fst pt)
-             (snd pt)
-             (thd pt)))))
+       (list (fst (car pt))
+             (snd (cadr pt))
+             (thd (caddr pt))))))
 
-  (compose (get-axes pt1 pt2)
-           (get-orientation pt1 pt2)))
+  (define orienter (get-orientation pt1 pt2))
+  (define axis-fix (get-axes pt1 (orienter pt2)))
+
+  (λ (pt)
+     (axis-fix (orienter pt))))
 
 (define (add-graph g1 start1 g2 start2)
-  (define pt-align-fn (create-point-align-func start1 start2))
-  (displayln "ggg")
-  (displayln start1)
-  (displayln start2)
-  (define g2-pos (subtract-pts start1 (pt-align-fn start2)))
-  (displayln g2-pos)
+  (define (get-alignment-from-dists)
+    (match-define (cons g1-dist g2-dist)
+      (for*/first ([d1 (in-pt-dists g1 start1)]
+                   [d2 (in-pt-dists g2 start2)]
+                  #:when (same-dist? d1 d2))
+        (cons d1 d2)))
 
+    (create-point-align-func g1-dist g2-dist))
+
+  (define pt-align-fn (get-alignment-from-dists))
+  (define g2-pos (subtract-pts start1 (pt-align-fn start2)))
+
+  (displayln "booyah")
   (for/fold ([graph g1])
             ([pt (in-graph-points g2)])
-    (displayln "foobar")
     (define aligned-pt (pt-align-fn pt))
-    (displayln "barfoo")
-    (graph-add-point graph aligned-pt)))
+    (graph-add-point graph (add-pts g2-pos aligned-pt))))
 
 (define (intersect-graphs g1 g2)
   (define intersection-result
@@ -153,40 +172,6 @@
 (define (graph-size g)
   (set-count (graph-points g)))
 
-
-#;(define (validate-coord-or-dist elem)
-  (unless (coord-or-dist? elem)
-    (error "neighbor set operations require elements to be coords or dists, instead was:" elem)))
-
-#;(struct neighbor-set (edges)
-  #:transparent
-  #:methods gen:set
-  [(define (set-member? st elem)
-     (validate-coord-or-dist elem)
-     (or (set-member? (neighbor-set-edges st) elem)
-         (set-member? (neighbor-set-edges st) (flip-dist elem))))
-
-   (define (set-add st elem)
-     (displayln "in set")
-     (displayln (neighbor-set? st))
-     (validate-coord-or-dist elem)
-     (neighbor-set (set-add (neighbor-set-edges st) elem)))
-
-   (define (set-remove st elem)
-     (validate-coord-or-dist elem)
-     (neighbor-set (set-remove (neighbor-set-edges st) elem)))
-
-   (define (set-first st)
-     (set-first (neighbor-set-edges st)))
-
-   (define (set-empty? st)
-     (set-empty? (neighbor-set-edges st)))
-
-   (define (set-copy-clear st)
-     (neighbor-set (set-copy-clear (neighbor-set-edges st))))])
-
-#;(define (make-neighbor-set)
-  (neighbor-set (set)))
 
 (define (get-input port)
   (define (stop-reading? line)
