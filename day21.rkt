@@ -12,6 +12,7 @@
       (modulo new-square 10)
       new-square)))
 
+;; part 1
 (define (update-player square score move)
   (let ([new-square (move-player square move)])
     (values new-square (+ score new-square))))
@@ -50,6 +51,7 @@
 
   (play-game/acc p1 0 6 p2 0 5 0))
 
+;; part 2
 (define (play-quantum-game p1 p2)
   (define (quantum-winner? score)
     (>= score 21))
