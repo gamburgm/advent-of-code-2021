@@ -1,0 +1,44 @@
+#############
+#...........#
+###A#B#C#D###
+  #A#B#C#D#
+  #########
+
+moves:
+A -> 20
+B -> 14
+D -> 13
+C -> 13
+
+|A0|A1|B1|C0|C1|D0|
+|-----------------|
+|A0|  |  |  |  |D0|
+|-----------------|
+|  |A1|B1|  |C1|D0|
+|-----------------|
+|  |A1|  |C0|  |  |
+|-----------------|
+|A0|  |  |C0|C1|  |
+
+D0 A0
+D0 A1 B1 C1
+C0 A1
+C1 C0 A0
+#<set: D0 A0> #<set: D0 A1 B1 C1> #<set: D1 C0 A0> #<set: C0 A1> #<set: B0 C1> #<set: D1 B1 C1>
+
+#############
+#...........#
+###D#B#D#A###
+  #C#C#A#B#
+  #########
+
+- move A0 up, 7 to left (one extra move)
+- move B1 up 2, one to right (one extra move)
+- move D1 direct
+- move D0 direct
+- move A1 up 2, one to right (one extra move)
+- move C0 direct
+- move A0 and A1 direct
+- move B0 up one, left one (the column extra)
+- move C1 direct
+- move B0 and B1 direct
